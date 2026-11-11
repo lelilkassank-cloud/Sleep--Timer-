@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Steep — a tea timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#d7e6dc; --ink:#1f2a44; --muted:#4d5a72; --plum:#6b2d5c; --leaf:#a9c9b7; --line:#9fb9aa;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#16212b;--ink:#e4efe8;--muted:#9db3a8;--plum:#e8a6d6;--leaf:#2b4a3f;--line:#2f4a42;color-scheme:dark}
+}
+:root[data-theme="dark"]{--bg:#16212b;--ink:#e4efe8;--muted:#9db3a8;--plum:#e8a6d6;--leaf:#2b4a3f;--line:#2f4a42;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Literata',Georgia,serif;line-height:1.65;font-size:18px}
+main{max-width:1000px;margin:0 auto;padding:48px 24px 40px}
+h1{font-family:'Familjen Grotesk',system-ui,sans-serif;font-weight:700;font-size:clamp(44px,9vw,92px);line-height:.98;letter-spacing:-.03em;margin:0 0 20px}
+.lede{max-width:34em;color:var(--muted);margin:0 0 40px}
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.picker{border:0;padding:0;margin:0}
+.picker legend{font-family:'Familjen Grotesk',system-ui,sans-serif;font-weight:500;margin-bottom:10px;color:var(--muted)}
+.opt{display:block;position:relative}
+.opt input{position:absolute;opacity:0}
+.opt span{display:flex;justify-content:space-between;gap:12px;padding:14px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.opt b{font-family:'Familjen Grotesk',system-ui,sans-serif;font-weight:700}
+.opt i{font-style:normal;color:var(--muted)}
+.opt input:checked + span{color:var(--plum);border-bottom:2px solid var(--plum)}
+.opt input:focus-visible + span{outline:3px solid var(--plum);outline-offset:2px}
+.dial{display:flex;flex-direction:column;align-items:center;gap:20px}
+.ring{position:relative;width:min(340px,80vw);aspect-ratio:1}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:14}
+.track{stroke:var(--leaf)}
+.prog{stroke:var(--plum);stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.read{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.time{font-family:'Familjen Grotesk',system-ui,sans-serif;font-weight:700;font-size:clamp(48px,12vw,72px);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:16px}
+.btns{display:flex;gap:12px}
+button{font:inherit;font-family:'Familjen Grotesk',system-ui,sans-serif;font-weight:700;font-size:18px;padding:12px 28px;border-radius:999px;border:2px solid var(--plum);cursor:pointer;background:var(--plum);color:var(--bg)}
+button.ghost{background:transparent;color:var(--plum)}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+footer{margin-top:64px;color:var(--muted);font-size:15px;border-top:1px solid var(--line);padding-top:16px}
+.done .ring{animation:pulse 1.2s ease-in-out 3}
+@keyframes pulse{50%{transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){.prog{transition:none}.done .ring{animation:none}}
+@media (max-width:760px){.stage{grid-template-columns:1fr;gap:32px}main{padding-top:32px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Steep.</h1>
+  <p class="lede">Pick a leaf, press start, and pour when the ring closes. Water temperature and time are set for each tea, so every cup comes out the way the leaf intended.</p>
+
+  <div class="stage">
+    <fieldset class="picker">
+      <legend>Choose your tea</legend>
+      <label class="opt"><input type="radio" name="tea" value="120|75|Sencha green" checked><span><b>Sencha green</b><i>75°C · 2 min</i></span></label>
+      <label class="opt"><input type="radio" name="tea" value="180|80|Silver needle white"><span><b>Silver needle white</b><i>80°C · 3 min</i></span></label>
+      <label class="opt"><input type="radio" name="tea" value="180|95|Tieguanyin oolong"><span><b>Tieguanyin oolong</b><i>95°C · 3 min</i></span></label>
+      <label class="opt"><input type="radio" name="tea" value="240|95|Assam black"><span><b>Assam black</b><i>95°C · 4 min</i></span></label>
+    </fieldset>
+
+    <div class="dial" id="dial">
+      <div class="ring">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="track" cx="100" cy="100" r="90"/>
+          <circle class="prog" id="prog" cx="100" cy="100" r="90"/>
+        </svg>
+        <div class="read">
+          <div class="time" id="time" role="timer" aria-live="off">2:00</div>
+          <div class="note" id="note">Water at 75°C</div>
+        </div>
+      </div>
+      <div class="btns">
+        <button id="go">Start steeping</button>
+        <button id="reset" class="ghost">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Times are starting points. Use less time for a lighter cup and more for a stronger one.</footer>
+</main>
+
+<script>
+(function(){
+  var C=2*Math.PI*90, prog=document.getElementById('prog'), time=document.getElementById('time'),
+      note=document.getElementById('note'), go=document.getElementById('go'), dial=document.getElementById('dial'),
+      total=120, left=120, temp=75, name='Sencha green', t=null;
+  prog.style.strokeDasharray=C;
+  function fmt(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+  function draw(){
+    time.textContent=fmt(left);
+    prog.style.strokeDashoffset=C*(1-left/total);
+  }
+  function stop(){clearInterval(t);t=null}
+  function load(){
+    var r=document.querySelector('input[name=tea]:checked').value.split('|');
+    total=left=parseInt(r[0],10); temp=r[1]; name=r[2];
+    stop(); dial.classList.remove('done');
+    note.textContent='Water at '+temp+'°C'; go.textContent='Start steeping';
+    prog.style.strokeDashoffset=0; draw();
+  }
+  function tick(){
+    left--; draw();
+    if(left<=0){
+      stop(); note.textContent='Pour now'; go.textContent='Steep again';
+      dial.classList.add('done'); time.textContent='0:00';
+      if(navigator.vibrate){try{navigator.vibrate([200,100,200])}catch(e){}}
+    }
+  }
+  go.addEventListener('click',function(){
+    if(t){stop();go.textContent='Resume';return}
+    if(left<=0){load()}
+    dial.classList.remove('done');
+    note.textContent=name+' is steeping'; go.textContent='Pause';
+    t=setInterval(tick,1000);
+  });
+  document.getElementById('reset').addEventListener('click',load);
+  document.querySelectorAll('input[name=tea]').forEach(function(i){i.addEventListener('change',load)});
+  load();
+})();
+</script>
+</body>
+</html>
